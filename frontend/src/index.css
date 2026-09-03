@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    @apply tracking-tight;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2.5 bg-emerald-600 text-white font-medium rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition-all shadow-sm shadow-emerald-500/20 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2.5 bg-white text-slate-700 font-medium rounded-xl border border-slate-200 hover:bg-slate-50 hover:border-slate-300 active:scale-[0.98] transition-all shadow-sm disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center px-4 py-2.5 bg-rose-600 text-white font-medium rounded-xl hover:bg-rose-700 active:scale-[0.98] transition-all shadow-sm shadow-rose-500/20 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .card-premium {
+    @apply bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow;
+  }
+
+  .input-field {
+    @apply w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all text-sm;
+  }
+
+  .badge-slot-available {
+    @apply bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100;
+  }
+
+  .badge-slot-locked {
+    @apply bg-amber-50 text-amber-800 border border-amber-300 cursor-not-allowed opacity-80;
+  }
+
+  .badge-slot-booked {
+    @apply bg-slate-100 text-slate-400 border border-slate-200 line-through cursor-not-allowed;
+  }
+
+  .badge-slot-mine {
+    @apply bg-emerald-600 text-white border-2 border-emerald-700 shadow-md shadow-emerald-500/30 animate-pulse-fast;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

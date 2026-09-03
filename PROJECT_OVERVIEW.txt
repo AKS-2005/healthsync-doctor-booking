@@ -1,0 +1,225 @@
+================================================================================
+HEALTHSYNC - DISTRIBUTED DOCTOR APPOINTMENT BOOKING SYSTEM
+================================================================================
+A High-Concurrency Healthcare Scheduling Platform Engineered with
+Atomic Distributed Slot Locking (Redis) and ACID Transactional Consistency (PostgreSQL)
+
+Live Production URL: https://project-slot.vercel.app
+Architecture: React 18 (Vite) + Express.js + PostgreSQL (Neon) + Redis (Upstash)
+
+================================================================================
+1. EXECUTIVE SUMMARY & PROBLEM STATEMENT
+================================================================================
+In high-demand medical facilities and telehealth platforms, thousands of patients 
+simultaneously compete for limited doctor consultation slots. Traditional database 
+query-and-update patterns suffer from "Race Conditions" and "Double Booking":
+
+Problem Scenario:
+- Patient A and Patient B both see the 10:00 AM slot for Dr. Sharma as "Available".
+- Both click "Book" at the exact same millisecond.
+- Without distributed synchronization, both database writes succeed, resulting in 
+  two patients arriving for the same consultation time.
+
+Solution in HealthSync:
+HealthSync implements a robust Two-Phase Distributed Locking Protocol using Redis 
+and PostgreSQL. When a patient selects a slot, Redis atomically locks the slot for 
+5 minutes (`SET NX EX 300`). Other users immediately see the slot as "Pending / Locked". 
+Once the patient confirms, a PostgreSQL ACID Transaction permanently records the 
+appointment, and an atomic Redis Lua script safely releases the lock.
+
+================================================================================
+2. CORE TECHNICAL ARCHITECTURE & FLOW
+================================================================================
+
+[ User Browser (React + Tailwind) ]
+                |
+                | HTTPS REST API Calls
+                v
+[ Vercel Serverless Gateway / Express.js Backend ]
+        |                                |
+        | Atomic Lock & Cache (TCP/TLS)  | Relational ACID Queries (SSL)
+        v                                v
+[ Upstash Cloud Redis ]          [ Neon Cloud PostgreSQL ]
+  - Distributed Slot Locks         - User & Doctor Profiles
+  - Real-time 5-min Lock TTL       - Permanent Appointments
+  - Atomic Lua Script Release      - Doctor Availability Schedules
+  - High-Speed Query Caching       - Comprehensive Audit Logging
+
+--------------------------------------------------------------------------------
+THE TWO-PHASE BOOKING PROTOCOL (STEP-BY-STEP)
+--------------------------------------------------------------------------------
+Phase 1: Temporary Lock Acquisition (Redis)
+1. Patient clicks an available time slot (e.g., 2026-09-10 at 10:00 AM).
+2. Backend executes: `SET lock:slot:{doctorId}:{date}:{time} {userId} NX EX 300`
+   - `NX`: Ensures lock is created ONLY if it does not already exist.
+   - `EX 300`: Automatically expires after 5 minutes (300 seconds) if abandoned.
+3. If successful, a unique `lockToken` is returned to the patient, and a real-time
+   countdown timer begins on the UI.
+4. If another patient attempts to click the slot, Redis rejects the request with 
+   HTTP 409 Conflict ("Slot is currently reserved by another patient").
+
+Phase 2: Permanent Confirmation (PostgreSQL Transaction)
+1. Patient fills in symptoms/consultation reason and clicks "Confirm Appointment".
+2. Backend initiates a PostgreSQL transaction (`BEGIN TRANSACTION`):
+   a. Validates that the appointment slot is not already committed in the DB.
+   b. Verifies that the patient holds the active Redis lock token.
+   c. Inserts the appointment record into the `appointments` table (`status = 'CONFIRMED'`).
+   d. Records an entry into the immutable `audit_logs` table.
+3. Transaction commits (`COMMIT`).
+4. Safe Lock Release:
+   An atomic Redis Lua script verifies ownership before deleting the key:
+   ```lua
+   if redis.call("get", KEYS[1]) == ARGV[1] then
+       return redis.call("del", KEYS[1])
+   else
+       return 0
+   end
+   ```
+5. Patient receives booking confirmation and receipt with booking ID.
+
+================================================================================
+3. SYSTEM ROLES & KEY FEATURES
+================================================================================
+
+A. PATIENT PORTAL
+-----------------
+- Doctor Discovery: Filter doctors by medical specialization (Cardiology, Dermatology, 
+  Neurology, Pediatrics, Orthopedics, General Medicine), consultation fee, and rating.
+- Live Slot Matrix: Visual calendar displaying Available, Locked (with live TTL), 
+  and Booked slots.
+- 5-Minute Checkout Guarantee: Guaranteed reservation holding window.
+- Patient Dashboard: View upcoming & past appointments, cancellation with reason, 
+  and doctor prescription notes.
+
+B. DOCTOR PORTAL
+----------------
+- Schedule Management: Configure custom working days and shift hours (e.g., Mon-Fri 
+  09:00 AM - 05:00 PM with 30-min consultation durations).
+- Leave & Blocked Dates: Block specific vacation days or emergency off-hours.
+- Patient Consultation Queue: View scheduled patients for today, mark appointments 
+  as 'Completed' or 'Cancelled', and attach consultation notes.
+
+C. ADMIN DASHBOARD
+------------------
+- System Analytics: Live count of total bookings, active doctors, registered patients, 
+  and daily revenue estimates.
+- Doctor Verification: Review and approve new doctor onboarding applications.
+- Specialization Control: Add, edit, or remove medical departments.
+- Full Audit Trail: Inspect tamper-evident audit logs with timestamp, user ID, 
+  action type, IP address, and metadata.
+
+D. BUILT-IN RACE CONDITION SIMULATION SANDBOX (Demo Feature)
+------------------------------------------------------------
+- An interactive benchmarking sandbox accessible from the top navigation bar.
+- Simulates 10 to 50 concurrent patient threads bombarding the same doctor slot 
+  at the exact same instant.
+- Live output telemetry graphs illustrating:
+  * 1 Request Successfully Granted Lock (200 OK)
+  * N-1 Concurrent Requests Safely Rejected (409 Conflict)
+  * Zero Double-Bookings Guarantee verified in real-time.
+
+================================================================================
+4. DATABASE SCHEMA DESIGN (PostgreSQL)
+================================================================================
+
+1. `users`
+   - id (UUID, Primary Key)
+   - email (VARCHAR, Unique)
+   - password_hash (VARCHAR - bcrypt)
+   - role (VARCHAR - 'patient', 'doctor', 'admin')
+   - name, phone, created_at, updated_at
+
+2. `doctors`
+   - id (UUID, Primary Key)
+   - user_id (UUID, Foreign Key -> users.id)
+   - specialization_id (UUID, Foreign Key -> specializations.id)
+   - bio, experience_years, consultation_fee, rating, is_approved
+
+3. `specializations`
+   - id (UUID, Primary Key)
+   - name (VARCHAR, Unique)
+   - description, icon
+
+4. `doctor_schedules`
+   - id (UUID, Primary Key)
+   - doctor_id (UUID, Foreign Key -> doctors.id)
+   - day_of_week (INT: 0=Sun to 6=Sat)
+   - start_time (TIME), end_time (TIME)
+   - slot_duration_minutes (INT, default 30)
+
+5. `appointments`
+   - id (UUID, Primary Key)
+   - doctor_id (UUID, Foreign Key -> doctors.id)
+   - patient_id (UUID, Foreign Key -> users.id)
+   - appointment_date (DATE)
+   - appointment_time (TIME)
+   - status ('CONFIRMED', 'CANCELLED', 'COMPLETED')
+   - reason, notes, payment_status, created_at
+
+6. `audit_logs`
+   - id (UUID, Primary Key)
+   - action (VARCHAR: 'SLOT_LOCKED', 'APPOINTMENT_CONFIRMED', 'APPOINTMENT_CANCELLED')
+   - entity_type, entity_id, user_id, metadata (JSONB), ip_address, created_at
+
+================================================================================
+5. CLOUD INFRASTRUCTURE & DEPLOYMENT STACK
+================================================================================
+- Frontend Hosting: Vercel Static CDN (Single Page Application with Vite React)
+- Backend Hosting: Vercel Serverless Functions (`api/index.js` Express Gateway)
+- Database: Neon PostgreSQL Serverless (AWS us-east-2 region with Connection Pooling & SSL)
+- Redis Cache & Locks: Upstash Serverless Redis (Low-latency TLS connection)
+- Authentication: Stateless JSON Web Tokens (JWT) signed with HMAC-SHA256
+- Security: Password hashing with bcryptjs (10 salt rounds), Helmet security headers, 
+  CORS domain protection, SQL Injection protection via parameterized queries.
+
+================================================================================
+6. DEFAULT DEMO TEST CREDENTIALS
+================================================================================
+
+1. Administrator Account:
+   - Email:    admin@healthsync.com
+   - Password: admin123
+   - Role:     System Administrator
+
+2. Doctor Account:
+   - Email:    dr.sharma@healthsync.com
+   - Password: doctor123
+   - Role:     Cardiologist
+
+3. Patient Account:
+   - Email:    patient1@healthsync.com
+   - Password: patient123
+   - Role:     Patient (20 sample patient accounts available: patient1 to patient20)
+
+*(You can also use the 1-Click "Instant Demo Login" buttons on the login screen)*
+
+================================================================================
+7. LOCAL DEVELOPMENT & DOCKER INSTRUCTIONS
+================================================================================
+To run the entire system locally with one command:
+```bash
+docker compose up -d
+```
+This boots:
+- PostgreSQL on port 5432
+- Redis on port 6379
+- Express Backend on port 5000
+- React Frontend on port 3000
+
+To run manually without Docker:
+```bash
+# 1. Run Backend
+cd backend
+npm install
+npm run migrate
+npm run seed
+npm run dev
+
+# 2. Run Frontend
+cd ../frontend
+npm install
+npm run dev
+```
+================================================================================
+Document Generated for HealthSync Project
+================================================================================
