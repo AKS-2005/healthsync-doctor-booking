@@ -12,6 +12,7 @@ A production-grade, full-stack medical appointment scheduling web application de
   * **Level 2 (Relational/PostgreSQL)**: Partial unique constraint `UNIQUE (doctor_id, appointment_date, appointment_time) WHERE status != 'CANCELLED'` and transactional row locking (`FOR UPDATE`) inside `BEGIN ... COMMIT` blocks.
 * **Atomic Lua Lock Release**: Custom Redis Lua script guarantees that only the user holding the unique UUID lock token can release or modify their active reservation.
 * **Dynamic Frontend Reservation Timer**: Visual 5-minute countdown clock with expiration warning and real-time slot state indicators (*Available*, *Temporarily Locked*, *Booked*).
+* **AI Clinical & Booking Assistant (RAG Agent)**: Context-aware floating AI widget with Gemini API integration and smart grounded retrieval. Authenticated patients get direct access to their upcoming appointments, doctor recommendations by symptoms, and cancellation assistance, while guest users receive triage guidance and doctor discovery.
 * **Interactive Concurrency Simulator**: Built-in visual simulation tool allowing testers to trigger simultaneous concurrent booking attempts side-by-side with millisecond timings.
 * **Role-Based Portals**: Dedicated, responsive experiences for **Patients**, **Doctors**, and **Administrators** with instant demo account switchers.
 * **Redis Caching & Sliding Rate Limiting**: In-memory caching with automatic cache invalidation and brute-force prevention on authentication and booking endpoints.

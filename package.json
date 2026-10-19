@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "description": "High-concurrency doctor appointment scheduling system with Redis locking and PostgreSQL",
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev"
+  },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

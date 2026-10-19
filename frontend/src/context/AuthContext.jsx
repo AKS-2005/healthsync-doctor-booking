@@ -83,7 +83,6 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
   };
-
   const isPatient = user?.role === 'PATIENT';
   const isDoctor = user?.role === 'DOCTOR';
   const isAdmin = user?.role === 'ADMIN';

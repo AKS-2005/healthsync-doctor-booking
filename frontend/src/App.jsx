@@ -33,6 +33,7 @@ import { AdminUsers } from './pages/admin/AdminUsers';
 import { AdminSpecializations } from './pages/admin/AdminSpecializations';
 
 import { LoadingSpinner } from './components/common/LoadingSpinner';
+import { ChatBotWidget } from './components/ai/ChatBotWidget';
 
 // Route Guard Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -121,6 +122,9 @@ export default function App() {
             {/* Catch-all fallback */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+
+          {/* Floating AI Clinical & Booking Assistant Widget */}
+          <ChatBotWidget />
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>

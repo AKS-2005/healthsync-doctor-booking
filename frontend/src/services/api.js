@@ -106,4 +106,10 @@ export const demoApi = {
   simulateRaceCondition: (data) => api.post('/demo/simulate-race-condition', data),
 };
 
+// ==================== AI ASSISTANT APIS ====================
+export const aiApi = {
+  chat: (message, history = []) => api.post('/ai/chat', { message, history }),
+  getSuggestions: () => api.get('/ai/suggestions'),
+};
+
 export default api;

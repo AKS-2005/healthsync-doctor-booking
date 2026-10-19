@@ -15,6 +15,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const specializationRoutes = require('./routes/specializationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const demoRoutes = require('./routes/demoRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 
 // Import Error Handler
 const errorHandler = require('./middleware/errorHandler');
@@ -68,6 +69,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/specializations', specializationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/demo', demoRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
